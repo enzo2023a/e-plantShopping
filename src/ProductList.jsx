@@ -2,12 +2,22 @@ import React, { useState, useEffect } from 'react';
 import './ProductList.css'
 import CartItem from './CartItem';
 import { addItem } from './CartSlice';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 function ProductList({ onHomeClick }) {
     const [showCart, setShowCart] = useState(false);
     const [showPlants, setShowPlants] = useState(false); // State to control the visibility of the About Us page
     const [addedToCart, setAddedToCart] = useState({});
     const dispatch = useDispatch();
+    const cartItems = useSelector((state) => state.cart.items);
+    useEffect(() => {
+        // Actualizar el estado local para reflejar los productos realmente presentes en el carrito
+        const updatedState = {};
+        cartItems.forEach(item => {
+            updatedState[item.name] = true;
+        });
+        setAddedToCart(updatedState);
+    }, [cartItems]);
+
     const handleAddToCart = (product) => {
         dispatch(addItem(product)); // Despachar la acción para agregar el producto al carrito (acción de Redux)
         setAddedToCart((prevState) => ({ // Actualizar el estado local para reflejar que el producto fue agregado
@@ -264,6 +274,11 @@ function ProductList({ onHomeClick }) {
         e.preventDefault();
         setShowCart(false);
     };
+
+    const calculateTotalQuantity = () => {
+        return cartItems ? cartItems.reduce((total, item) => total + item.quantity, 0) : 0;
+    };
+
     return (
         <div>
             <div className="navbar" style={styleObj}>
@@ -281,7 +296,7 @@ function ProductList({ onHomeClick }) {
                 </div>
                 <div style={styleObjUl}>
                     <div> <a href="#" onClick={(e) => handlePlantsClick(e)} style={styleA}>Plants</a></div>
-                    <div> <a href="#" onClick={(e) => handleCartClick(e)} style={styleA}><h1 className='cart'><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" id="IconChangeColor" height="68" width="68"><rect width="156" height="156" fill="none"></rect><circle cx="80" cy="216" r="12"></circle><circle cx="184" cy="216" r="12"></circle><path d="M42.3,72H221.7l-26.4,92.4A15.9,15.9,0,0,1,179.9,176H84.1a15.9,15.9,0,0,1-15.4-11.6L32.5,37.8A8,8,0,0,0,24.8,32H8" fill="none" stroke="#faf9f9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" id="mainIconPathAttribute"></path></svg></h1></a></div>
+                    <div> <a href="#" onClick={(e) => handleCartClick(e)} style={styleA}><h1 className='cart'><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" id="IconChangeColor" height="68" width="68"><rect width="156" height="156" fill="none"></rect><circle cx="80" cy="216" r="12"></circle><circle cx="184" cy="216" r="12"></circle><path d="M42.3,72H221.7l-26.4,92.4A15.9,15.9,0,0,1,179.9,176H84.1a15.9,15.9,0,0,1-15.4-11.6L32.5,37.8A8,8,0,0,0,24.8,32H8" fill="none" stroke="#faf9f9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" id="mainIconPathAttribute"></path></svg><span className="cart_quantity_count">{calculateTotalQuantity()}</span></h1></a></div>
                 </div>
             </div>
             {!showCart ? (
@@ -292,25 +307,33 @@ function ProductList({ onHomeClick }) {
                                 <div>{category.category}</div> {/* Mostrar el nombre de la categoría */}
                             </h1>
                             <div className="product-list"> {/* Contenedor para la lista de tarjetas de plantas */}
-                                {category.plants.map((plant, plantIndex) => ( // Recorrer cada planta en la categoría actual
-                                    <div className="product-card" key={plantIndex}> {/* Clave única para cada tarjeta de planta */}
-                                        <img
-                                            className="product-image"
-                                            src={plant.image} // Mostrar la imagen de la planta
-                                            alt={plant.name} // Texto alternativo para accesibilidad
-                                        />
-                                        <div className="product-title">{plant.name}</div> {/* Mostrar el nombre de la planta */}
-                                        {/* Mostrar otros detalles de la planta como descripción y precio */}
-                                        <div className="product-description">{plant.description}</div> {/* Mostrar la descripción de la planta */}
-                                        <div className="product-cost">${plant.cost}</div> {/* Mostrar el precio de la planta */}
-                                        <button
-                                            className="product-button"
-                                            onClick={() => handleAddToCart(plant)} // Manejar la acción de agregar la planta al carrito
-                                        >
-                                            Add to Cart
-                                        </button>
-                                    </div>
-                                ))}
+                                {category.plants.map((plant, plantIndex) => {
+                                    // Verificar si la planta ya fue agregada al carrito
+                                    const isAdded = cartItems.some(item => item.name === plant.name);
+
+                                    return (
+                                        <div className="product-card" key={plantIndex}> {/* Clave única para cada tarjeta de planta */}
+                                            <img
+                                                className="product-image"
+                                                src={plant.image} // Mostrar la imagen de la planta
+                                                alt={plant.name} // Texto alternativo para accesibilidad
+                                            />
+                                            <div className="product-title">{plant.name}</div> {/* Mostrar el nombre de la planta */}
+                                            {/* Mostrar otros detalles de la planta como descripción y precio */}
+                                            <div className="product-description">{plant.description}</div> {/* Mostrar la descripción de la planta */}
+                                            <div className="product-cost">{plant.cost}</div> {/* Mostrar el precio de la planta */}
+                                            <button
+                                                className={`product-button ${isAdded ? 'added-to-cart' : ''}`} // Aplicar clase gris si ya fue agregada
+                                                onClick={() => handleAddToCart(plant)} // Manejar la acción de agregar la planta al carrito
+                                                disabled={isAdded}
+                                            >
+                                                {isAdded ? "Added to cart" : "Add to Cart"} {/* Cambiar el texto del botón según estado */}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+
+
                             </div>
                         </div>
                     ))}
